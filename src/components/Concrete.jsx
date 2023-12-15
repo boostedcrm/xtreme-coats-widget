@@ -14,8 +14,19 @@ import {
 } from "@mui/material";
 import React, { useState } from "react";
 import { useForm, Controller } from "react-hook-form";
+import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
+import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
+import { DatePicker } from "@mui/x-date-pickers/DatePicker";
+import dayjs from "dayjs";
 
-export default function Concrete({ setPage }) {
+export default function Concrete({
+  setPage,
+  dealData,
+  ZOHO,
+  setSnackbarMessage,
+  setSeverity,
+  setOpenSnackbar,
+}) {
   const [polish, setPolish] = useState(false);
   const [eproxy, setEproxy] = useState(false);
   const [striping, setStripping] = useState(false);
@@ -42,8 +53,29 @@ export default function Concrete({ setPage }) {
     formState: { errors },
   } = useForm();
 
-  const onSubmit = (data) => {
-    console.log("Form data:", data);
+  const onSubmit = async (data) => {
+    const recordData = data;
+
+    recordData["Account_Name"] = dealData?.Account_Name;
+    recordData["Contact_Person"] = dealData?.Contact_Name;
+    recordData["Job_Deal_Name"] = dealData?.Deal_Name;
+    recordData["Deal_Lookup"] = { id: dealData?.id };
+
+    await ZOHO.CRM.API.insertRecord({
+      Entity: "Concrete_Bid_Checklists",
+      APIData: recordData,
+      Trigger: ["workflow"],
+    }).then(function (data) {
+      if (data.data[0].status === "success") {
+        setSnackbarMessage("Milestone successfully updated");
+        setSeverity("success");
+        setOpenSnackbar(true);
+        setPage("Home");
+        ZOHO.CRM.UI.Popup.closeReload().then(function (data) {
+          console.log(data);
+        });
+      }
+    });
   };
 
   return (
@@ -82,13 +114,13 @@ export default function Concrete({ setPage }) {
             <FormControlLabel
               control={
                 <Controller
-                  name="Proxy"
+                  name="Epoxy"
                   control={control}
                   defaultValue={false}
                   render={({ field }) => (
                     <div style={{ display: "flex" }}>
                       <div style={{ flexShrink: 0, width: 170 }}>
-                        <label>Proxy</label>
+                        <label>Epoxy</label>
                       </div>
                       <Checkbox
                         {...field}
@@ -159,9 +191,9 @@ export default function Concrete({ setPage }) {
           <br />
 
           <Grid container spacing={2}>
-            {renderTextField("JobSiteName", "Job Site Name", "", control)}
+            {renderTextField("Facility_Name", "Job Site Name", "", control)}
             {renderTextField(
-              "JobStreetAddress",
+              "Job_Street_Address",
               "Job Street Address",
               "",
               control
@@ -169,18 +201,20 @@ export default function Concrete({ setPage }) {
           </Grid>
           <br />
           <Grid container spacing={2}>
-            {renderTextField("JobCity", "Job City", "", control)}
-            {renderShiftSelect("vendorType", "Vendor Type", "-None-", control, [
+            {renderTextField("Job_City", "Job City", "", control)}
+            {renderShiftSelect(
+              "Vendor_Type",
+              "Vendor Type",
               "-None-",
-              "GC",
-              "Direct",
-            ])}
+              control,
+              ["-None-", "GC", "Direct"]
+            )}
           </Grid>
           <br />
           <Grid container spacing={2}>
-            {renderTextField("JobZipCode", "Job Zip Code", "", control)}
+            {renderTextField("Job_Zip_Code", "Job Zip Code", "", control)}
             {renderShiftSelect(
-              "OptimalTimeforCompletion",
+              "What_is_the_optimal_time_for_completion	",
               "Optimal Time for Completion",
               "1st Shift",
               control,
@@ -190,22 +224,69 @@ export default function Concrete({ setPage }) {
           <br />
           <Grid container spacing={2}>
             {renderCheckboxField(
-              "weekEndWork",
+              "Check_if_Weekend_Work	",
               "Check if Weekend Work",
               false,
               control
             )}
-            {renderTextField("accountName", "Job State", "", control)}
+            {renderTextField("Job_State", "Job State", "", control)}
           </Grid>
           <br />
           <Grid container spacing={2}>
             {renderMultiTextField(
-              "PhysicalJobDetails",
+              "Physical_Job_Details",
               "Physical Job Details",
               "",
               control
             )}
           </Grid>
+        </Box>
+        <br />
+        <Box>
+          <Typography fontWeight="bold">Bid Checklist Information</Typography>
+          <br />
+          <br />
+
+          <Grid container spacing={2}>
+            {renderDatePicker("Create_Date", "Create Date", null, control)}
+            {renderTextField(
+              "Name",
+              "Concrete - Bid Checklist Name",
+              "",
+              control
+            )}
+          </Grid>
+          <br />
+          <Grid container spacing={2}>
+            {renderDatePicker(
+              "Quote_Due_Date",
+              "Quote Due Date",
+              null,
+              control
+            )}
+            {renderTextField(
+              "Bid_Checklist_Co_Owner",
+              "Bid Checklist Co-Owner",
+              "",
+              control
+            )}
+          </Grid>
+          <br />
+          <Grid container spacing={2}>
+            {renderDatePicker(
+              "Est_Perform_Date",
+              "Est. Perform Date",
+              null,
+              control
+            )}
+            {renderCheckboxField(
+              "Send_to_Vsimple",
+              "Send to Vsimple",
+              false,
+              control
+            )}
+          </Grid>
+          <br />
         </Box>
         <Box>
           {/* section: Space Checklist */}
@@ -214,13 +295,13 @@ export default function Concrete({ setPage }) {
           <br />
           <Grid container spacing={2}>
             {renderCheckboxField(
-              "ClosetOrWaterSource",
+              "Locate_Mop_Closet_or_Water_Source",
               "Locate Mop Closet or Water Source?",
               false,
               control
             )}
             {renderCheckboxField(
-              "PowerAvailabilityLocation",
+              "Power_Availability_LocationEdit",
               "Power Availability & Location?",
               false,
               control
@@ -229,13 +310,13 @@ export default function Concrete({ setPage }) {
           <br />
           <Grid container spacing={2}>
             {renderCheckboxField(
-              "EquipmentAccess",
+              "Equipment_Access",
               "Equipment Access?",
               false,
               control
             )}
             {renderCheckboxField(
-              "GarageAccess",
+              "Garage_Access",
               "Garage Access?",
               false,
               control
@@ -244,13 +325,13 @@ export default function Concrete({ setPage }) {
           <br />
           <Grid container spacing={2}>
             {renderCheckboxField(
-              "LocateElectric",
+              "Locate_Electric",
               "Locate Electric?",
               false,
               control
             )}
             {renderCheckboxField(
-              "WalkoutBasement",
+              "Walkout_Basement",
               "Walkout Basement?",
               false,
               control
@@ -258,7 +339,12 @@ export default function Concrete({ setPage }) {
           </Grid>
           <br />
           <Grid container spacing={2}>
-            {renderMultiTextField("SpaceDetails", "Space Details", "", control)}
+            {renderMultiTextField(
+              "Space_Details",
+              "Space Details",
+              "",
+              control
+            )}
           </Grid>
         </Box>
         <br />
@@ -267,29 +353,29 @@ export default function Concrete({ setPage }) {
           <Typography fontWeight="bold">Location Within Building</Typography>
           <br />
           <Grid container spacing={2}>
-            {renderTextField("RoomNumber", "Room Number", "", control)}
-            {renderTextField("AreaName", "Area Name", "", control)}
+            {renderTextField("Room_Number", "Room Number", "", control)}
+            {renderTextField("Area_Name", "Area Name", "", control)}
           </Grid>
           <br />
           <Grid container spacing={2}>
             {renderTextField(
-              "accessBuilding",
+              "Where_to_access_building	",
               "Where to access building?",
               "",
               control
             )}
-            {renderTextField("level_floor", "Level/Floor", "", control)}
+            {renderTextField("Level_Floor", "Level/Floor", "", control)}
           </Grid>
           <br />
           <Grid container spacing={2}>
-            {renderTextField(
-              "framesForEntry",
+            {renderCheckboxField(
+              "Measure_Door_Frames_for_Entry",
               "Measure Door Frames for Entry",
-              "",
+              false,
               control
             )}
             {renderCheckboxField(
-              "liftNeeded",
+              "Elevator_Stairs_Lift_Needed",
               "Elevator, Stairs, Lift Needed?",
               false,
               control
@@ -298,7 +384,7 @@ export default function Concrete({ setPage }) {
           <br />
           <Grid container spacing={2}>
             {renderMultiTextField(
-              "locationDetails",
+              "Location_Details",
               "Location Details",
               "",
               control
@@ -312,8 +398,8 @@ export default function Concrete({ setPage }) {
           <Typography fontWeight="bold">Concrete - Jobs</Typography>
           <br />
           <Grid container spacing={2}>
-            {renderShiftSelect(
-              "ExistingFloorCovering",
+            {/* {renderShiftSelect(
+              "Existing_Floor_Covering",
               "Existing Floor Covering",
               "None",
               control,
@@ -328,9 +414,9 @@ export default function Concrete({ setPage }) {
                 "None",
                 "N/A",
               ]
-            )}
+            )} */}
             {renderShiftSelect(
-              "ExistingConditions",
+              "Existing_Conditions",
               "Existing Conditions",
               "None",
               control,
@@ -340,14 +426,14 @@ export default function Concrete({ setPage }) {
           <br />
           <Grid container spacing={2}>
             {renderShiftSelect(
-              "ConcreteHardness",
+              "Concrete_Hardness",
               "Concrete Hardness",
               "None",
               control,
               ["Hard", "Medium", "Soft", "Extra Soft"]
             )}
             {renderShiftSelect(
-              "Structuralissues?",
+              "Structural_issues",
               "Structural issues?",
               "None",
               control,
@@ -357,14 +443,14 @@ export default function Concrete({ setPage }) {
           <br />
           <Grid container spacing={2}>
             {renderShiftSelect(
-              "MoistureIssues??",
+              "Moisture_Issues",
               "Moisture Issues?",
               "None",
               control,
               ["Yes", "No"]
             )}
             {renderCheckboxField(
-              "CuringCompoundRemoval",
+              "Curing_Compound_Removal",
               "Curing Compound Removal",
               false,
               control
@@ -373,16 +459,19 @@ export default function Concrete({ setPage }) {
           <br />
           <Grid container spacing={2}>
             {renderShiftSelect(
-              "GeneratorRequired?",
+              "Generator_Required",
               "Generator Required?",
               "None",
               control,
               ["Yes", "No"]
             )}
-            {renderShiftSelect("GrinderType", "Grinder Type", "None", control, [
-              "Propane",
-              "Electric",
-            ])}
+            {renderShiftSelect(
+              "Grinder_Type",
+              "Grinder Type",
+              "None",
+              control,
+              ["Propane", "Electric"]
+            )}
           </Grid>
           <br />
           <Grid container spacing={2}>
@@ -390,28 +479,33 @@ export default function Concrete({ setPage }) {
               "Yes",
               "No",
             ])}
-            {renderTextField("JointFillLF", "Joint Fill LF", "", control)}
+            {renderTextField("Joint_Fill_LF", "Joint Fill LF", "", control)}
           </Grid>
           <br />
           <Grid container spacing={2}>
             {renderTextField(
-              "DistancetoPower",
+              "Distance_to_Power",
               "Distance to Power",
               "",
               control
             )}
-            {renderTextField("CrackChasingLF", "Crack Chasing LF", "", control)}
+            {renderTextField(
+              "Crack_Chasing_LF",
+              "Crack Chasing LF",
+              "",
+              control
+            )}
           </Grid>
           <br />
           <Grid container spacing={2}>
             {renderShiftSelect(
-              "DebrisDisposalOnsite",
+              "Debris_Disposal_Onsite",
               "Debris Disposal Onsite?",
               "None",
               control,
               ["Yes", "No"]
             )}
-            {renderShiftSelect("GroutCoat", "Grout Coat", "None", control, [
+            {renderShiftSelect("Grout_Coat", "Grout Coat", "None", control, [
               "Yes",
               "No",
             ])}
@@ -419,7 +513,7 @@ export default function Concrete({ setPage }) {
           <br />
           <Grid container spacing={2}>
             {renderMultiTextField(
-              "ConcreteJobDetails",
+              "Concrete_Job_Details",
               "Concrete Job Details",
               "",
               control
@@ -430,67 +524,128 @@ export default function Concrete({ setPage }) {
         {eproxy && (
           <Box>
             {/* section: Epoxy Jobs */}
-            <Typography fontWeight="bold">Epoxy Jobs</Typography>
+            <Typography fontWeight="bold">Proxy Jobs</Typography>
             <br />
             <Grid container spacing={2}>
               {renderMultiTextField(
-                "scopeOfWorkTileEproxy",
+                "Scope_of_Work_Epoxy",
                 "Scope of Work - Epoxy",
                 "",
                 control
               )}
-              {renderTextField("SizeofTile", "Size of Tile", "", control)}
-            </Grid>
-            <br />
-            <Grid container spacing={2}>
-              {renderTextField("TGSQFT", "T&G SQFT", "", control)}
-              {renderTextField(
-                "ColorSealColor",
-                "Color Seal Color",
-                "",
-                control
-              )}
-            </Grid>
-            <br />
-            <Grid container spacing={2}>
-              {renderCheckboxField(
-                "tilesNeedGroutCoatTouchUp",
-                "Tiles Need Grout Coat Touch-Up",
-                false,
-                control
-              )}
-              {renderTextField(
-                "existingColorConditions",
-                "Existing Color Conditions",
-                "",
-                control
-              )}
-            </Grid>
-            <br />
-            <Grid container spacing={2}>
-              {renderMultiTextField(
-                "T&GJobDetails",
-                "T&G Job Details",
-                "",
-                control
-              )}
               {renderShiftSelect(
-                "CoatingRemoval",
-                "Coating Removal",
+                "Cove_Base_Required",
+                "Cove Base Required?",
                 "None",
                 control,
-                ["Yes", "No", "None"]
+                ["4 Inch", "6 Inch", "None"]
               )}
             </Grid>
+            <br />
             <Grid container spacing={2}>
-              <Grid item xs={6}></Grid>
-              {renderShiftSelect(
-                "CoatingType",
-                "Coating Type",
+              {renderShiftSelect("System", "System", "None", control, [
+                "Flake",
+                "Quartz",
+                "Metallic",
+                "Solid Color With Grit",
+                "Solid Color no Grit",
+                "Clear Coat",
                 "None",
+              ])}
+              {renderTextField("Total_Epoxy_LF	", "Total Epoxy LF", "", control)}
+            </Grid>
+            <br />
+            <Grid container spacing={2}>
+              {renderShiftSelect("Flake_Size", "Flake Size", "None", control, [
+                "Quarter Inch",
+                "Eighth Inch",
+                "None",
+              ])}
+              {renderMultiSelect(
+                "Epoxy_Metallic_Colors",
+                "Epoxy Metallic Colors",
+                "",
                 control,
-                ["Wax", "Adsil", "XGen", "Icon", "Unknown", "None"]
+                [
+                  "VAR Pearl",
+                  "VAR Dolphin",
+                  "VAR Manatee",
+                  "VAR Whale",
+                  "VAR Emerald",
+                  "VAR Lagar",
+                  "VAR Driftwood",
+                  "VAR Hammock",
+                  "VAR Rum",
+                  "VAR Shipwreck",
+                  "VAR Bikini",
+                  "VAR Starfish",
+                  "VAR Americana",
+                  "VAR Sangria",
+                  "VAR Mandarin",
+                  "VAR Daydream",
+                  "VAR Sunset",
+                  "VAR Margarita",
+                  "VAR Avocado",
+                  "VAR Seaweed",
+                  "VAR Curacao",
+                  "VAR Azure",
+                  "VAR Ocean",
+                  "VAR Reef",
+                  "VAR Seashell",
+                  "VAR Guava",
+                  "VAR Overcast",
+                  "VAR Sandbar",
+                  "VAR Palapa",
+                  "VAR Bamboo",
+                  "VAR Tiki",
+                  "VAR Cabana",
+                  "VAR Cannon",
+                  "VAR Scandal",
+                  "VAR Parrot",
+                  "VAR Mango",
+                  "VAR Coral",
+                  "VAR Ginger",
+                  "VAR Banana",
+                  "VAR Papaya",
+                  "VAR Palm",
+                  "VAR Pier",
+                  "VAR Kona",
+                  "VAR Caribbean",
+                  "VAR Maui",
+                  "VAR Oyster",
+                  "VAR Prawn",
+                  "VAR Urchin",
+                  "VAR Jellyfish",
+                  "VAR Snail",
+                ]
               )}
+            </Grid>
+            <br />
+            <Grid container spacing={2}>
+              {renderTextField("Epoxy_SQFT	", "Epoxy SQFT", "", control)}
+              {renderMultiSelect("Epoxy_Colors", "Epoxy Colors", "", control, [
+                "SW White",
+                "SW Black",
+                "SW Charcoal",
+                "SW Steel Gray",
+                "SW Bone White",
+                "SW Silver Gray",
+                "SW Parchment",
+                "SW Royal Blue",
+                "SW Pewter",
+                "SW Classic Tile Red",
+                "SW Caramel",
+              ])}
+            </Grid>
+            <Grid container spacing={2}>
+              <Grid item xs={6}>
+                {renderMultiTextField(
+                  "Epoxy_Job_Details",
+                  "Epoxy Job Details",
+                  "",
+                  control
+                )}
+              </Grid>
             </Grid>
           </Box>
         )}
@@ -501,27 +656,24 @@ export default function Concrete({ setPage }) {
             <br />
             <Grid container spacing={2}>
               {renderMultiTextField(
-                "ScopeofWorkPolish",
+                "Scope_of_Work_Polish	",
                 "Scope of Work - Polish",
                 "",
                 control
               )}
               {renderShiftSelect(
-                "FinishLevel",
+                "Finish_Level",
                 "Finish Level",
                 "None",
                 control,
-                ["400", "800", "1500", "3000"]
+                ["400", "800", "1500", "3000", "None"]
               )}
             </Grid>
             <br />
             <Grid container spacing={2}>
-              {renderShiftSelect("Stain", "Stain", "None", control, [
-                "Yes",
-                "No",
-              ])}
+              {renderShiftSelect("Stain", "Stain", "", control, ["Yes", "No"])}
               {renderShiftSelect(
-                "PowerOnsite",
+                "Power_Onsite",
                 "Power Onsite?",
                 "None",
                 control,
@@ -531,14 +683,14 @@ export default function Concrete({ setPage }) {
             <br />
             <Grid container spacing={2}>
               {renderShiftSelect(
-                "JointsFilled",
+                "Joints_Filled",
                 "Joints Filled?",
                 "None",
                 control,
                 ["Yes", "No"]
               )}
               {renderTextField(
-                "BreakerPanelType",
+                "Breaker_Panel_Type",
                 "Breaker Panel Type",
                 "",
                 control
@@ -546,45 +698,51 @@ export default function Concrete({ setPage }) {
             </Grid>
             <br />
             <Grid container spacing={2}>
-              {renderTextField("PolishedSQFT", "Polished SQFT", "", control)}
+              {renderTextField("Polished_SQFT", "Polished SQFT", "", control)}
               {renderShiftSelect(
-                "SecureStorage?",
+                "Secure_Storage",
                 "Secure Storage?",
                 "None",
                 control,
                 ["Yes", "No"]
               )}
             </Grid>
-            <br />
             <Grid container spacing={2}>
-              <Grid item xs={6}>
-                {renderShiftSelect(
-                  "PolishColors",
-                  "Polish Colors",
-                  "None",
-                  control,
-                  ["PR MOCHA", "PR Light Roast"]
-                )}
-              </Grid>
-              <Grid item xs={6}>
-                {renderMultiTextField(
-                  "stagingDetails",
-                  "Staging/Load/Unload Details",
-                  "",
-                  control
-                )}
-              </Grid>
+              {renderShiftSelect(
+                "Polish_Colors",
+                "Polish Colors",
+                "None",
+                control,
+                [
+                  "PR Mocha",
+                  "PR Light Roast",
+                  "PR Espresso",
+                  "PR Desert Sand",
+                  "PR Amber",
+                  "PR Bronze",
+                  "PR Georgia Clay",
+                  "PR Brown Stone",
+                  "PR Rose Quartz",
+                  "PR Red Rock",
+                  "PR Painted Desert",
+                ]
+              )}
+              {renderMultiTextField(
+                "Staging_Load_Unload_Details",
+                "Staging/Load/Unload Details",
+                "",
+                control
+              )}
             </Grid>
-            <br />
             <Grid container spacing={2}>
               {renderMultiTextField(
-                "PolishedJobDetails",
+                "Polished_Job_Details	",
                 "Polished Job Details",
                 "",
                 control
               )}
               {renderTextField(
-                "TotalPolishedConcreteLF",
+                "Total_Polished_Concrete_LF",
                 "Total Polished Concrete LF",
                 "",
                 control
@@ -594,12 +752,12 @@ export default function Concrete({ setPage }) {
         )}
         {striping && (
           <Box>
-            {/* section: Striping Job */}
+            {/* section: polish*/}
             <Typography fontWeight="bold">Striping Job</Typography>
             <br />
             <Grid container spacing={2}>
               {renderMultiTextField(
-                "scopeOfWorkStriping",
+                "Scope_of_Work_Striping",
                 "Scope of Work - Striping",
                 "",
                 control
@@ -607,39 +765,41 @@ export default function Concrete({ setPage }) {
               {renderShiftSelect("Type", "Type?", "None", control, [
                 "Walkway",
                 "Safety Boarder",
+                "None",
               ])}
             </Grid>
             <br />
             <Grid container spacing={2}>
-              {renderTextField("StripingSQFT", "Striping SQFT", "", control)}
+              {renderTextField("Striping_SQFT", "Striping SQFT", "", control)}
               {renderShiftSelect("Layout", "Layout?", "None", control, [
                 "Solid",
                 "Lines",
                 "Cross Hatching",
+                "None",
               ])}
             </Grid>
             <br />
             <Grid container spacing={2}>
               {renderTextField(
-                "TotalStripingLF",
+                "Total_Striping_LF",
                 "Total Striping LF",
                 "",
                 control
               )}
-              {renderTextField("width", "Width?", "", control)}
+              {renderTextField("Width", "Width?", "", control)}
             </Grid>
             <br />
             <Grid container spacing={2}>
               {renderMultiTextField(
-                "StripingJobDetails",
+                "Striping_Job_Details",
                 "Striping Job Details",
                 "",
                 control
               )}
-              {renderShiftSelect(
-                "StripingColors",
+              {renderMultiSelect(
+                "Striping_Colors",
                 "Striping Colors",
-                "None",
+                "",
                 control,
                 ["Yellow", "Green", "Blue", "Red"]
               )}
@@ -651,12 +811,12 @@ export default function Concrete({ setPage }) {
             {/* section: Terrazzo */}
             <Typography fontWeight="bold">Other Concrete Jobs</Typography>
             <br />
-            {renderTextField("OtherSQFT", "Other SQFT", "", control)}
+            {renderTextField("Other_SQFT", "Other SQFT", "", control)}
             <br />
-            {renderTextField("TotalOtherLF", "Total Other LF", "", control)}
+            {renderTextField("Total_Other_LF", "Total Other LF", "", control)}
             <br />
             {renderMultiTextField(
-              "OtherConcreteDetails",
+              "Other_Concrete_Details",
               "Other Concrete Details",
               "",
               control
@@ -841,3 +1001,99 @@ const renderMultiTextField = (
     />
   </Grid>
 );
+
+const renderDatePicker = (name, label, defaultValue, control) => {
+  return (
+    <Grid item xs={6}>
+      <FormControlLabel
+        labelPlacement="start"
+        control={
+          <Controller
+            name={name}
+            control={control}
+            defaultValue={defaultValue}
+            render={({ field }) => (
+              <div style={{ display: "flex" }}>
+                <div style={{ width: "180px", flexShrink: 0 }}>
+                  <label>{label}</label>
+                </div>
+                <LocalizationProvider dateAdapter={AdapterDayjs}>
+                  <DatePicker
+                    disablePast
+                    {...field}
+                    inputProps={{
+                      style: {
+                        height: 18,
+                      },
+                    }}
+                    onChange={(newValue) => {
+                      field.onChange(dayjs(newValue).format("YYYY-MM-DD"));
+                    }}
+                    PopperProps={{
+                      placement: "right-end",
+                    }}
+                    renderInput={(params) => (
+                      <TextField
+                        {...params}
+                        required
+                        fullWidth
+                        size="small"
+                        InputLabelProps={{ shrink: true }}
+                        sx={{ width: "223px" }}
+                      />
+                    )}
+                  />
+                </LocalizationProvider>
+              </div>
+            )}
+          />
+        }
+      />
+    </Grid>
+  );
+};
+
+const renderMultiSelect = (
+  name,
+  label,
+  defaultValue,
+  control,
+  items,
+  labelWidth = 180
+) => {
+  return (
+    <Grid item xs={6}>
+      <FormControlLabel
+        labelPlacement="start"
+        control={
+          <Controller
+            name={name}
+            control={control}
+            defaultValue={defaultValue}
+            render={({ field }) => (
+              <div style={{ display: "flex" }}>
+                <div style={{ width: labelWidth, flexShrink: 0 }}>
+                  <label>{label}</label>
+                </div>
+                <TextField
+                  select
+                  label=""
+                  variant="outlined"
+                  {...field}
+                  size="small"
+                  sx={{ width: "223px" }}
+                >
+                  {items.map((item, index) => (
+                    <MenuItem key={index} value={item}>
+                      {item}
+                    </MenuItem>
+                  ))}
+                </TextField>
+              </div>
+            )}
+          />
+        }
+      />
+    </Grid>
+  );
+};

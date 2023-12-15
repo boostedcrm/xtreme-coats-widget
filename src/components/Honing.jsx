@@ -15,7 +15,7 @@ import {
 import React, { useState } from "react";
 import { useForm, Controller } from "react-hook-form";
 
-export default function Honing({ setPage }) {
+export default function Honing({ setPage, dealData, ZOHO,setSnackbarMessage,setSeverity,setOpenSnackbar }) {
   const [terrazo, setTerrazo] = useState(false);
   const [lvt, setLvt] = useState(false);
   const [tile, setTile] = useState(false);
@@ -46,8 +46,30 @@ export default function Honing({ setPage }) {
     formState: { errors },
   } = useForm();
 
-  const onSubmit = (data) => {
-    console.log("Form data:", data);
+  const onSubmit = async (data) => {
+    const recordData = data;
+
+    recordData["Account_Name"] = dealData?.Account_Name;
+    recordData["Contact_Person"] = dealData?.Contact_Name;
+    recordData["Job_Deal_Name"] = dealData?.Deal_Name;
+    recordData["Deal_Lookup"] = { id: dealData?.id };
+    // console.log({recordData})
+
+    await ZOHO.CRM.API.insertRecord({
+      Entity: "Honing_Bid_Checklists",
+      APIData: recordData,
+      Trigger: ["workflow"],
+    }).then(function (data) {
+      if (data.data[0].status === "success") {
+        setSnackbarMessage("Milestone successfully updated");
+        setSeverity("success");
+        setOpenSnackbar(true);
+        setPage("Home");
+        ZOHO.CRM.UI.Popup.closeReload().then(function (data) {
+          console.log(data);
+        });
+      }
+    });
   };
 
   return (

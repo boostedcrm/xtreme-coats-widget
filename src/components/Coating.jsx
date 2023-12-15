@@ -14,8 +14,20 @@ import {
 } from "@mui/material";
 import React, { useState } from "react";
 import { useForm, Controller } from "react-hook-form";
+import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
+import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
+import { DatePicker } from "@mui/x-date-pickers/DatePicker";
+import dayjs from "dayjs";
 
-export default function Coating({ setPage }) {
+export default function Coating({
+  setPage,
+  dealData,
+  ZOHO,
+  setSnackbarMessage,
+  setSeverity,
+  setOpenSnackbar,
+  setZohoLoadede,
+}) {
   const [terrazo, setTerrazo] = useState(false);
   const [lvt, setLvt] = useState(false);
   const [tile, setTile] = useState(false);
@@ -46,8 +58,30 @@ export default function Coating({ setPage }) {
     formState: { errors },
   } = useForm();
 
-  const onSubmit = (data) => {
-    console.log("Form data:", data);
+  const onSubmit = async (data) => {
+    const recordData = data;
+
+    recordData["Account_Name"] = dealData?.Account_Name;
+    recordData["Contact_Person"] = dealData?.Contact_Name;
+    recordData["Job_Deal_Name"] = dealData?.Deal_Name;
+    recordData["Deal_Lookup"] = { id: dealData?.id };
+    // console.log({recordData})
+
+    await ZOHO.CRM.API.insertRecord({
+      Entity: "Coating_Bid_Checklists",
+      APIData: recordData,
+      Trigger: ["workflow"],
+    }).then(function (data) {
+      if (data.data[0].status === "success") {
+        setSnackbarMessage("Milestone successfully updated");
+        setSeverity("success");
+        setOpenSnackbar(true);
+        setPage("Home");
+        ZOHO.CRM.UI.Popup.closeReload().then(function (data) {
+          console.log(data);
+        });
+      }
+    });
   };
 
   return (
@@ -86,7 +120,7 @@ export default function Coating({ setPage }) {
             <FormControlLabel
               control={
                 <Controller
-                  name="vctLvt"
+                  name="VCT_LVT"
                   control={control}
                   defaultValue={false}
                   render={({ field }) => (
@@ -110,7 +144,7 @@ export default function Coating({ setPage }) {
             <FormControlLabel
               control={
                 <Controller
-                  name="tileGrout"
+                  name="Tile_Grout"
                   control={control}
                   defaultValue={false}
                   render={({ field }) => (
@@ -139,23 +173,30 @@ export default function Coating({ setPage }) {
           <br />
 
           <Grid container spacing={2}>
-            {renderTextField("JobSiteName", "Job Site Name", "", control)}
-            {renderTextField("JobStreetAddress", "Job Street Address", "", control)}
+            {renderTextField("Facility_Name", "Job Site Name", "", control)}
+            {renderTextField(
+              "Job_Street_Address",
+              "Job Street Address",
+              "",
+              control
+            )}
           </Grid>
           <br />
           <Grid container spacing={2}>
-            {renderTextField("JobCity", "Job City", "", control)}
-            {renderShiftSelect("vendorType", "Vendor Type", "-None-", control, [
-              "-None-",
-              "GC",
-              "Direct",
-            ])}
-          </Grid>
-          <br />
-          <Grid container spacing={2}>
-            {renderTextField("JobZipCode", "Job Zip Code", "", control)}
+            {renderTextField("Job_City", "Job City", "", control)}
             {renderShiftSelect(
-              "OptimalTimeforCompletion",
+              "Vendor_Type",
+              "Vendor Type",
+              "-None-",
+              control,
+              ["-None-", "GC", "Direct"]
+            )}
+          </Grid>
+          <br />
+          <Grid container spacing={2}>
+            {renderTextField("Job_Zip_Code", "Job Zip Code", "", control)}
+            {renderShiftSelect(
+              "What_is_the_optimal_time_for_completion	",
               "Optimal Time for Completion",
               "1st Shift",
               control,
@@ -165,17 +206,17 @@ export default function Coating({ setPage }) {
           <br />
           <Grid container spacing={2}>
             {renderCheckboxField(
-              "weekEndWork",
+              "Check_if_Weekend_Work	",
               "Check if Weekend Work",
               false,
               control
             )}
-            {renderTextField("accountName", "Job State", "", control)}
+            {renderTextField("Job_State", "Job State", "", control)}
           </Grid>
           <br />
           <Grid container spacing={2}>
             {renderMultiTextField(
-              "PhysicalJobDetails",
+              "Physical_Job_Details",
               "Physical Job Details",
               "",
               control
@@ -183,19 +224,68 @@ export default function Coating({ setPage }) {
           </Grid>
         </Box>
         <Box>
+          <br />
+          <Box>
+            <Typography fontWeight="bold">
+              Coating Bid Checklist Information
+            </Typography>
+            <br />
+            <br />
+
+            <Grid container spacing={2}>
+              {renderDatePicker("Create_Date", "Create Date", null, control)}
+              {renderTextField(
+                "Name",
+                "Coating - Bid Checklist Name",
+                "",
+                control
+              )}
+            </Grid>
+            <br />
+            <Grid container spacing={2}>
+              {renderDatePicker(
+                "Quote_Due_Date",
+                "Quote Due Date",
+                null,
+                control
+              )}
+              {renderTextField(
+                "Bid_Checklist_Co_Owner",
+                "Bid Checklist Co-Owner",
+                "",
+                control
+              )}
+            </Grid>
+            <br />
+            <Grid container spacing={2}>
+              {renderDatePicker(
+                "Est_Perform_Date",
+                "Est. Perform Date",
+                null,
+                control
+              )}
+              {renderCheckboxField(
+                "Send_to_Vsimple",
+                "Send to Vsimple",
+                false,
+                control
+              )}
+            </Grid>
+            <br />
+          </Box>
           {/* section: Space Checklist */}
 
           <Typography fontWeight="bold">Space Checklist</Typography>
           <br />
           <Grid container spacing={2}>
             {renderCheckboxField(
-              "ClosetOrWaterSource",
+              "Locate_Mop_Closet_or_Water_Source",
               "Locate Mop Closet or Water Source?",
               false,
               control
             )}
             {renderCheckboxField(
-              "PowerAvailabilityLocation",
+              "Power_Availability_Location",
               "Power Availability & Location?",
               false,
               control
@@ -204,13 +294,13 @@ export default function Coating({ setPage }) {
           <br />
           <Grid container spacing={2}>
             {renderCheckboxField(
-              "EquipmentAccess",
+              "Equipment_Access",
               "Equipment Access?",
               false,
               control
             )}
             {renderCheckboxField(
-              "GarageAccess",
+              "Garage_Access",
               "Garage Access?",
               false,
               control
@@ -219,13 +309,13 @@ export default function Coating({ setPage }) {
           <br />
           <Grid container spacing={2}>
             {renderCheckboxField(
-              "LocateElectric",
+              "Locate_Electric",
               "Locate Electric?",
               false,
               control
             )}
             {renderCheckboxField(
-              "WalkoutBasement",
+              "Walkout_Basement",
               "Walkout Basement?",
               false,
               control
@@ -233,7 +323,12 @@ export default function Coating({ setPage }) {
           </Grid>
           <br />
           <Grid container spacing={2}>
-            {renderMultiTextField("SpaceDetails", "Space Details", "", control)}
+            {renderMultiTextField(
+              "Space_Details",
+              "Space Details",
+              "",
+              control
+            )}
           </Grid>
         </Box>
         <br />
@@ -242,29 +337,29 @@ export default function Coating({ setPage }) {
           <Typography fontWeight="bold">Location Within Building</Typography>
           <br />
           <Grid container spacing={2}>
-            {renderTextField("RoomNumber", "Room Number", "", control)}
-            {renderTextField("AreaName", "Area Name", "", control)}
+            {renderTextField("Room_Number", "Room Number", "", control)}
+            {renderTextField("Area_Name", "Area Name", "", control)}
           </Grid>
           <br />
           <Grid container spacing={2}>
             {renderTextField(
-              "accessBuilding",
+              "Where_to_access_building",
               "Where to access building?",
               "",
               control
             )}
-            {renderTextField("level_floor", "Level/Floor", "", control)}
+            {renderTextField("Level_Floor", "Level/Floor", "", control)}
           </Grid>
           <br />
           <Grid container spacing={2}>
             {renderTextField(
-              "framesForEntry",
+              "Measure_Door_Frames_for_Entry",
               "Measure Door Frames for Entry",
               "",
               control
             )}
             {renderCheckboxField(
-              "liftNeeded",
+              "Elevator_Stairs_Lift_Needed",
               "Elevator, Stairs, Lift Needed?",
               false,
               control
@@ -273,7 +368,7 @@ export default function Coating({ setPage }) {
           <br />
           <Grid container spacing={2}>
             {renderMultiTextField(
-              "locationDetails",
+              "Location_Details",
               "Location Details",
               "",
               control
@@ -287,39 +382,45 @@ export default function Coating({ setPage }) {
           <Typography fontWeight="bold">Coating Jobs</Typography>
           <br />
           <Grid container spacing={2}>
-            {renderCheckboxField("power", "Power?", false, control)}
-            {renderCheckboxField(
-              "acceptFootTraffic",
+            {renderShiftSelect("Power", "Power?", "None", control, [
+              "Yes",
+              "No",
+              "None",
+            ])}
+            {renderTextField(
+              "What_time_must_the_area_accept_foot_traffic",
               "What time must the area accept foot traffic?",
-              false,
+              "",
               control
             )}
           </Grid>
           <br />
           <Grid container spacing={2}>
             {renderTextField(
-              "distanceToWaterCloset",
+              "Distance_to_Water_Closet",
               "Distance to Water Closet",
               "",
               control
             )}
-            {renderCheckboxField(
-              "LightingAvailable",
+            {renderShiftSelect(
+              "Lighting_Available",
               "Lighting Available?",
-              false,
-              control
+              "None",
+              control,
+              ["Yes", "No", "None"]
             )}
           </Grid>
           <br />
           <Grid container spacing={2}>
-            {renderCheckboxField(
-              "SecureStorageOnsite",
+            {renderShiftSelect(
+              "Secure_Storage_Onsite",
               "Secure Storage Onsite?",
-              false,
-              control
+              "None",
+              control,
+              ["Yes", "No", "None"]
             )}
             {renderTextField(
-              "distanceToPower",
+              "Distance_to_Power_if_yes",
               "Distance to Power (if yes)",
               "",
               control
@@ -328,16 +429,17 @@ export default function Coating({ setPage }) {
           <br />
           <Grid container spacing={2}>
             {renderMultiTextField(
-              "locationDetails",
+              "Location_Details",
               "Location Details",
               "",
               control
             )}
-            {renderCheckboxField(
-              "CoatingRemoval",
+            {renderShiftSelect(
+              "Coating_Removal",
               "Coating Removal?",
-              false,
-              control
+              "None",
+              control,
+              ["Yes", "No", "None"]
             )}
           </Grid>
           <br />
@@ -349,18 +451,18 @@ export default function Coating({ setPage }) {
             <br />
             <Grid container spacing={2}>
               {renderMultiTextField(
-                "scopeOfWorkTileGrout",
+                "Scope_of_Work_Tile_Grout",
                 "Scope of Work Tile & Grout",
                 "",
                 control
               )}
-              {renderTextField("SizeofTile", "Size of Tile", "", control)}
+              {renderTextField("Size_of_Tile", "Size of Tile", "", control)}
             </Grid>
             <br />
             <Grid container spacing={2}>
-              {renderTextField("TGSQFT", "T&G SQFT", "", control)}
+              {renderTextField("T_G_SQFT", "T&G SQFT", "", control)}
               {renderTextField(
-                "ColorSealColor",
+                "Color_Seal_Color",
                 "Color Seal Color",
                 "",
                 control
@@ -369,13 +471,13 @@ export default function Coating({ setPage }) {
             <br />
             <Grid container spacing={2}>
               {renderCheckboxField(
-                "tilesNeedGroutCoatTouchUp",
+                "Tiles_Need_Grout_Coat_Touch_Up",
                 "Tiles Need Grout Coat Touch-Up",
                 false,
                 control
               )}
               {renderTextField(
-                "existingColorConditions",
+                "Existing_Color_Conditions",
                 "Existing Color Conditions",
                 "",
                 control
@@ -384,13 +486,13 @@ export default function Coating({ setPage }) {
             <br />
             <Grid container spacing={2}>
               {renderMultiTextField(
-                "T&GJobDetails",
+                "T&T_G_Job_Details",
                 "T&G Job Details",
                 "",
                 control
               )}
               {renderShiftSelect(
-                "CoatingRemoval",
+                "Coating_Removal",
                 "Coating Removal",
                 "None",
                 control,
@@ -400,7 +502,7 @@ export default function Coating({ setPage }) {
             <Grid container spacing={2}>
               <Grid item xs={6}></Grid>
               {renderShiftSelect(
-                "CoatingType",
+                "Coating_Type",
                 "Coating Type",
                 "None",
                 control,
@@ -416,18 +518,18 @@ export default function Coating({ setPage }) {
             <br />
             <Grid container spacing={2}>
               {renderMultiTextField(
-                "ScopeofWorkVCTLVT",
+                "Scope_of_Work_VCT_LVT",
                 "Scope of Work VCT / LVT",
                 "",
                 control
               )}
-              {renderTextField("VCTLVTSQFT", "VCT / LVT SQFT", "", control)}
+              {renderTextField("VCT_LVT_SQFT", "VCT / LVT SQFT", "", control)}
             </Grid>
             <br />
             <Grid container spacing={2}>
-              {renderTextField("TGSQFT", "T&G SQFT", "", control)}
+              {renderTextField("T_G_SQFT", "T&G SQFT", "", control)}
               {renderTextField(
-                "ColorSealColor",
+                "Color_Seal_Color",
                 "Color Seal Color",
                 "",
                 control
@@ -436,13 +538,13 @@ export default function Coating({ setPage }) {
             <br />
             <Grid container spacing={2}>
               {renderMultiTextField(
-                "VCT/LVT Job Details",
+                "VCT_LVT_Job_Details",
                 "VCT/LVT Job Details",
                 "",
                 control
               )}
               {renderShiftSelect(
-                "CoatingRemovalVctLvt",
+                "Coating_Removal_VCT_LVT",
                 "Coating Removal (VCT/LVT)",
                 "None",
                 control,
@@ -452,7 +554,7 @@ export default function Coating({ setPage }) {
             <Grid container spacing={2}>
               <Grid item xs={6}></Grid>
               {renderShiftSelect(
-                "CoatingTypeVctLvt",
+                "Coating_Type_VCT_LVT",
                 "Coating Type (VCT/LVT)",
                 "None",
                 control,
@@ -468,23 +570,23 @@ export default function Coating({ setPage }) {
             <br />
             <Grid container spacing={2}>
               {renderMultiTextField(
-                "scopeOfWorkTerrazzo",
+                "Scope_of_Work_Terrazzo",
                 "Scope of Work Terrazzo",
                 "",
                 control
               )}
-              {renderTextField("TerrazzoSQFT", "Terrazzo SQFT", "", control)}
+              {renderTextField("Terrazzo_SQFT", "Terrazzo SQFT", "", control)}
             </Grid>
             <br />
             <Grid container spacing={2}>
               {renderMultiTextField(
-                "TerrazzoJobDetails",
+                "Terrazzo_Job_Details",
                 "Terrazzo Job Details",
                 "",
                 control
               )}
               {renderShiftSelect(
-                "CoatingRemovalTerrazzo",
+                "Coating_Removal_Terrazzo",
                 "Coating Removal (Terrazzo)",
                 "None",
                 control,
@@ -495,7 +597,7 @@ export default function Coating({ setPage }) {
             <Grid container spacing={2}>
               <Grid item xs={6}></Grid>
               {renderShiftSelect(
-                "CoatingTypeTerrazzo",
+                "Coating_Type_Terrazzo",
                 "Coating Type (Terrazzo)",
                 "None",
                 control,
@@ -682,3 +784,54 @@ const renderMultiTextField = (
     />
   </Grid>
 );
+
+const renderDatePicker = (name, label, defaultValue, control) => {
+  return (
+    <Grid item xs={6}>
+      <FormControlLabel
+        labelPlacement="start"
+        control={
+          <Controller
+            name={name}
+            control={control}
+            defaultValue={defaultValue}
+            render={({ field }) => (
+              <div style={{ display: "flex" }}>
+                <div style={{ width: "180px", flexShrink: 0 }}>
+                  <label>{label}</label>
+                </div>
+                <LocalizationProvider dateAdapter={AdapterDayjs}>
+                  <DatePicker
+                    disablePast
+                    {...field}
+                    inputProps={{
+                      style: {
+                        height: 18,
+                      },
+                    }}
+                    onChange={(newValue) => {
+                      field.onChange(dayjs(newValue).format("YYYY-MM-DD"));
+                    }}
+                    PopperProps={{
+                      placement: "right-end",
+                    }}
+                    renderInput={(params) => (
+                      <TextField
+                        {...params}
+                        required
+                        fullWidth
+                        size="small"
+                        InputLabelProps={{ shrink: true }}
+                        sx={{ width: "223px" }}
+                      />
+                    )}
+                  />
+                </LocalizationProvider>
+              </div>
+            )}
+          />
+        }
+      />
+    </Grid>
+  );
+};
